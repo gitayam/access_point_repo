@@ -27,7 +27,9 @@ Building a web application for managing WiFi access points with password sharing
 - [x] Rating and review system (1-5 stars)
 - [x] Service blocking reports with toggles (VPN, streaming, torrenting, adult content)
 - [x] Custom website blocking with add/remove functionality
-- [x] User favorites system
+- [x] User favorites system (backend routes implemented)
+- [x] User activity tracking and display
+- [x] User profile management with statistics
 - [x] Address search with Nominatim integration
 - [x] Password filter for map view
 
@@ -90,9 +92,10 @@ docker-compose up --build
 
 ## 🐛 Known Issues
 
-- [ ] Duplicate key constraint errors when re-adding same access point
+- [x] Duplicate key constraint errors when re-adding same access point (Fixed with find-and-update logic)
 - [ ] Speed test using mock data (needs Docker container implementation)
 - [ ] Frontend ECONNREFUSED errors during backend restart
+- [x] Missing user routes causing 404 errors (Fixed - user.ts routes created)
 
 ## 📈 Future Enhancements (Post-Launch)
 
@@ -114,7 +117,7 @@ docker-compose up --build
 - [ ] Automated backup system
 
 ### Infrastructure
-- [ ] CI/CD pipeline with GitHub Actions
+- [x] CI/CD pipeline with GitHub Actions (Basic pipeline created)
 - [ ] Kubernetes deployment manifests
 - [ ] Monitoring and logging (Prometheus/Grafana)
 - [ ] CDN integration for static assets
