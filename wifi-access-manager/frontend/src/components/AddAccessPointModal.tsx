@@ -1,0 +1,288 @@
+import { useState, useEffect } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import axios from 'axios'
+import { X, Wifi, Lock, MapPin } from 'lucide-react'
+import { useToast } from '@/hooks/useToast'
+
+interface AddAccessPointModalProps {
+  onClose: () => void
+  onSuccess: () => void
+  defaultLocation?: { lat: number; lng: number } | null
+}
+
+export default function AddAccessPointModal({
+  onClose,
+  onSuccess,
+  defaultLocation
+}: AddAccessPointModalProps) {
+  const { toast } = useToast()
+  const [formData, setFormData] = useState({
+    ssid: '',
+    bssid: '',
+    password: '',
+    isOpen: false,
+    requiresLogin: false,
+    latitude: defaultLocation?.lat || 37.7749,
+    longitude: defaultLocation?.lng || -122.4194,
+    address: '',
+    venueName: '',
+    venueType: 'other',
+    securityType: 'WPA2'
+  })
+
+  useEffect(() => {
+    if (defaultLocation) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: defaultLocation.lat,
+        longitude: defaultLocation.lng
+      }))
+    }
+  }, [defaultLocation])
+
+  const addMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await axios.post('/api/access-points', data)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Access point added successfully'
+      })
+      onSuccess()
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to add access point',
+        variant: 'destructive'
+      })
+    }
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    addMutation.mutate(formData)
+  }
+
+  const handleGetLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData(prev => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }))
+        },
+        () => {
+          toast({
+            title: 'Error',
+            description: 'Could not get your location',
+            variant: 'destructive'
+          })
+        }
+      )
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold flex items-center text-gray-900 dark:text-white">
+              <Wifi className="h-5 w-5 mr-2" />
+              Add Access Point
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                SSID (Network Name) *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.ssid}
+                onChange={(e) => setFormData(prev => ({ ...prev, ssid: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                BSSID (MAC Address)
+              </label>
+              <input
+                type="text"
+                value={formData.bssid}
+                onChange={(e) => setFormData(prev => ({ ...prev, bssid: e.target.value }))}
+                placeholder="00:00:00:00:00:00"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Security Type
+              </label>
+              <select
+                value={formData.securityType}
+                onChange={(e) => setFormData(prev => ({ ...prev, securityType: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              >
+                <option value="Open">Open</option>
+                <option value="WEP">WEP</option>
+                <option value="WPA">WPA</option>
+                <option value="WPA2">WPA2</option>
+                <option value="WPA3">WPA3</option>
+              </select>
+            </div>
+
+            {formData.securityType !== 'Open' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <Lock className="inline h-4 w-4 mr-1" />
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isOpen}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isOpen: e.target.checked }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Open Network</span>
+              </label>
+
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.requiresLogin}
+                  onChange={(e) => setFormData(prev => ({ ...prev, requiresLogin: e.target.checked }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Requires Login Page</span>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <MapPin className="inline h-4 w-4 mr-1" />
+                Location
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={formData.latitude}
+                  onChange={(e) => setFormData(prev => ({ ...prev, latitude: parseFloat(e.target.value) }))}
+                  placeholder="Latitude"
+                  className="flex-1 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400"
+                />
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={formData.longitude}
+                  onChange={(e) => setFormData(prev => ({ ...prev, longitude: parseFloat(e.target.value) }))}
+                  placeholder="Longitude"
+                  className="flex-1 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                >
+                  Current
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Address
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Venue Name
+              </label>
+              <input
+                type="text"
+                value={formData.venueName}
+                onChange={(e) => setFormData(prev => ({ ...prev, venueName: e.target.value }))}
+                placeholder="e.g., Starbucks, Airport"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Venue Type
+              </label>
+              <select
+                value={formData.venueType}
+                onChange={(e) => setFormData(prev => ({ ...prev, venueType: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              >
+                <option value="cafe">Cafe</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="library">Library</option>
+                <option value="airport">Airport</option>
+                <option value="hotel">Hotel</option>
+                <option value="office">Office</option>
+                <option value="public">Public Space</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={addMutation.isPending}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+              >
+                {addMutation.isPending ? 'Adding...' : 'Add Access Point'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
