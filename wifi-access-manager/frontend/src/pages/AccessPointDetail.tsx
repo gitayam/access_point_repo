@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import axios from 'axios'
@@ -35,11 +35,6 @@ export default function AccessPointDetail() {
     enabled: showQR && !!id
   })
 
-  useEffect(() => {
-    if (showQR) {
-      console.log('QR modal should show, qrCode data:', qrCode);
-    }
-  }, [showQR, qrCode])
 
   const ratingMutation = useMutation({
     mutationFn: async (data: { overallRating: number; comment?: string }) => {
@@ -195,10 +190,7 @@ export default function AccessPointDetail() {
                     <Copy className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('QR button clicked, setting showQR to true');
-                      setShowQR(true);
-                    }}
+                    onClick={() => setShowQR(true)}
                     className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   >
                     <QrCode className="h-4 w-4" />
@@ -236,15 +228,15 @@ export default function AccessPointDetail() {
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Download:</span>
-                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].download_speed.toFixed(1)} Mbps</span>
+                    <span className="text-gray-900 dark:text-white">{Number(accessPoint.speedTests[0].download_speed).toFixed(1)} Mbps</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Upload:</span>
-                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].upload_speed.toFixed(1)} Mbps</span>
+                    <span className="text-gray-900 dark:text-white">{Number(accessPoint.speedTests[0].upload_speed).toFixed(1)} Mbps</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Ping:</span>
-                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].ping.toFixed(0)} ms</span>
+                    <span className="text-gray-900 dark:text-white">{Number(accessPoint.speedTests[0].ping).toFixed(0)} ms</span>
                   </div>
                 </div>
               </div>
