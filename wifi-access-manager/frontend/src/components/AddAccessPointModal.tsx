@@ -18,6 +18,9 @@ export default function AddAccessPointModal({
   const { toast } = useToast()
   const [searchSSID, setSearchSSID] = useState('')
   const [showWigleResults, setShowWigleResults] = useState(false)
+  const [nearbyNetworks, setNearbyNetworks] = useState<any[]>([])
+  const [isLoadingNearby, setIsLoadingNearby] = useState(false)
+  const [selectedNetworkId, setSelectedNetworkId] = useState('')
   const [formData, setFormData] = useState({
     ssid: '',
     bssid: '',
@@ -39,8 +42,28 @@ export default function AddAccessPointModal({
         latitude: defaultLocation.lat,
         longitude: defaultLocation.lng
       }))
+      // Automatically search for nearby networks when location is provided
+      searchNearbyNetworks(defaultLocation.lat, defaultLocation.lng)
     }
   }, [defaultLocation])
+
+  const searchNearbyNetworks = async (lat: number, lng: number) => {
+    setIsLoadingNearby(true)
+    try {
+      const response = await axios.post('/api/wigle/search', {
+        latitude: lat,
+        longitude: lng,
+        radius: 0.5 // 500m radius for nearby networks
+      })
+      if (response.data.networks) {
+        setNearbyNetworks(response.data.networks)
+      }
+    } catch (error) {
+      console.error('Failed to search nearby networks:', error)
+    } finally {
+      setIsLoadingNearby(false)
+    }
+  }
 
   // Search for nearby access points from WiGLE
   const { data: wigleResults, refetch: searchWigle, isLoading: isSearching } = useQuery({
@@ -196,12 +219,51 @@ export default function AddAccessPointModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 SSID (Network Name) *
               </label>
+              {nearbyNetworks.length > 0 && (
+                <div className="mb-2">
+                  <select
+                    value={selectedNetworkId}
+                    onChange={(e) => {
+                      const networkId = e.target.value
+                      setSelectedNetworkId(networkId)
+                      if (networkId) {
+                        const network = nearbyNetworks.find((_, idx) => `${idx}` === networkId)
+                        if (network) {
+                          selectWigleNetwork(network)
+                        }
+                      } else {
+                        // Clear form when "Enter manually" is selected
+                        setFormData(prev => ({
+                          ...prev,
+                          ssid: '',
+                          bssid: '',
+                          securityType: 'WPA2'
+                        }))
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-blue-400 dark:border-blue-500 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 mb-2"
+                  >
+                    <option value="">-- Enter manually --</option>
+                    {nearbyNetworks.map((network, idx) => (
+                      <option key={idx} value={`${idx}`}>
+                        {network.ssid || 'Hidden Network'} • {network.securityType} • {Math.round(network.accuracy || 0)}m away
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {isLoadingNearby ? 'Searching for nearby networks...' : `${nearbyNetworks.length} networks found nearby`}
+                  </p>
+                </div>
+              )}
               <input
                 type="text"
                 required
                 value={formData.ssid}
-                onChange={(e) => setFormData(prev => ({ ...prev, ssid: e.target.value }))}
-                placeholder="Enter network name"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, ssid: e.target.value }))
+                  setSelectedNetworkId('') // Clear dropdown when manually entering
+                }}
+                placeholder={nearbyNetworks.length > 0 ? "Or enter network name manually" : "Enter network name"}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
@@ -284,18 +346,32 @@ export default function AddAccessPointModal({
                   step="any"
                   required
                   value={formData.latitude}
-                  onChange={(e) => setFormData(prev => ({ ...prev, latitude: parseFloat(e.target.value) }))}
+                  onChange={(e) => {
+                    const lat = parseFloat(e.target.value)
+                    setFormData(prev => ({ ...prev, latitude: lat }))
+                    // Search for networks when location changes
+                    if (!isNaN(lat) && !isNaN(formData.longitude)) {
+                      searchNearbyNetworks(lat, formData.longitude)
+                    }
+                  }}
                   placeholder="Latitude"
-                  className="flex-1 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <input
                   type="number"
                   step="any"
                   required
                   value={formData.longitude}
-                  onChange={(e) => setFormData(prev => ({ ...prev, longitude: parseFloat(e.target.value) }))}
+                  onChange={(e) => {
+                    const lng = parseFloat(e.target.value)
+                    setFormData(prev => ({ ...prev, longitude: lng }))
+                    // Search for networks when location changes
+                    if (!isNaN(formData.latitude) && !isNaN(lng)) {
+                      searchNearbyNetworks(formData.latitude, lng)
+                    }
+                  }}
                   placeholder="Longitude"
-                  className="flex-1 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <button
                   type="button"
