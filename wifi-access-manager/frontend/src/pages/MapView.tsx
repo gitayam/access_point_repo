@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
