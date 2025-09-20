@@ -126,11 +126,11 @@ export default function AddAccessPointModal({
     setFormData(prev => ({
       ...prev,
       ssid: network.ssid || '',
-      bssid: network.netid || '',
-      latitude: network.trilat,
-      longitude: network.trilong,
-      securityType: network.encryption || 'unknown',
-      isOpen: network.encryption === 'Open'
+      bssid: network.bssid || network.netid || '',
+      latitude: network.latitude || network.trilat,
+      longitude: network.longitude || network.trilong,
+      securityType: network.securityType || network.encryption || 'unknown',
+      isOpen: network.isOpen || network.encryption === 'Open'
     }))
     setShowWigleResults(false)
   }
