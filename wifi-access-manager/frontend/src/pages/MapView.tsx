@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 're
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
-import { Lock, Unlock, Search, Plus, MapPin } from 'lucide-react'
+import { Lock, Unlock, Search, Plus, MapPin, Navigation } from 'lucide-react'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import AddAccessPointModal from '@/components/AddAccessPointModal'
@@ -253,6 +253,52 @@ export default function MapView() {
     }
   }
 
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: 'Not Supported',
+        description: 'Geolocation is not supported by your browser',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newCenter: [number, number] = [position.coords.latitude, position.coords.longitude]
+        setCenter(newCenter)
+        toast({
+          title: 'Location Found',
+          description: 'Navigated to your current location',
+        })
+      },
+      (error) => {
+        let errorMessage = 'Could not get your location'
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied. Please enable location access.'
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable'
+            break
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out'
+            break
+        }
+        toast({
+          title: 'Location Error',
+          description: errorMessage,
+          variant: 'destructive'
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  }
+
   // Filter access points based on search and password filter
   const filteredAccessPoints = accessPoints?.filter(ap => {
     // Filter by SSID if search term exists
@@ -273,7 +319,7 @@ export default function MapView() {
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Search Address</label>
+            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Navigation</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -290,6 +336,13 @@ export default function MapView() {
                 title="Search address"
               >
                 <MapPin className="h-4 w-4" />
+              </button>
+              <button
+                onClick={getCurrentLocation}
+                className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                title="Use my current location"
+              >
+                <Navigation className="h-4 w-4" />
               </button>
             </div>
           </div>
