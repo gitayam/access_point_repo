@@ -28,18 +28,32 @@ router.post('/search', optionalAuth, async (req: AuthRequest, res, next) => {
   try {
     const data = WigleSearchSchema.parse(req.body);
 
+    // Calculate bounding box based on radius (in km)
+    const latDelta = data.radius / 111;
+    const lngDelta = data.radius / (111 * Math.cos(data.latitude * Math.PI / 180));
+
     const params: any = {
       onlymine: false,
       freenet: false,
       paynet: false,
-      latrange1: data.latitude - (data.radius / 111),
-      latrange2: data.latitude + (data.radius / 111),
-      longrange1: data.longitude - (data.radius / (111 * Math.cos(data.latitude * Math.PI / 180))),
-      longrange2: data.longitude + (data.radius / (111 * Math.cos(data.latitude * Math.PI / 180)))
+      latrange1: data.latitude - latDelta,
+      latrange2: data.latitude + latDelta,
+      longrange1: data.longitude - lngDelta,
+      longrange2: data.longitude + lngDelta,
+      closestLat: data.latitude,
+      closestLong: data.longitude,
+      variance: 0.01,
+      resultsPerPage: 100
     };
 
+    // Support both exact SSID match and wildcard search
     if (data.ssid) {
-      params.ssid = data.ssid;
+      // If SSID contains wildcards, use ssidlike
+      if (data.ssid.includes('%') || data.ssid.includes('*')) {
+        params.ssidlike = data.ssid.replace(/\*/g, '%');
+      } else {
+        params.ssidlike = `%${data.ssid}%`;
+      }
     }
 
     const response = await wigleApi.get('/network/search', { params });
@@ -52,17 +66,22 @@ router.post('/search', optionalAuth, async (req: AuthRequest, res, next) => {
     const db = getDatabase();
 
     const formattedNetworks = networks.map((network: any) => ({
-      ssid: network.ssid,
+      ssid: network.ssid || '',
       bssid: network.netid,
       securityType: network.encryption,
       isOpen: network.encryption === 'Open',
       latitude: network.trilat,
       longitude: network.trilong,
       lastSeen: network.lasttime,
+      firstSeen: network.firsttime,
       channel: network.channel,
       qos: network.qos,
       manufacturer: network.dhcp || null,
-      accuracy: network.accuracy || null
+      accuracy: network.accuracy || null,
+      road: network.road,
+      city: network.city,
+      region: network.region,
+      country: network.country
     }));
 
     for (const network of formattedNetworks) {
@@ -94,7 +113,9 @@ router.post('/search', optionalAuth, async (req: AuthRequest, res, next) => {
     res.json({
       success: true,
       count: formattedNetworks.length,
-      networks: formattedNetworks
+      networks: formattedNetworks,
+      totalResults: response.data.totalResults || formattedNetworks.length,
+      searchAfter: response.data.searchAfter || null
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+import { useEffect, useState, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
@@ -40,7 +40,17 @@ interface AccessPoint {
   distance: number
 }
 
-function LocationMarker({ onMapClick }: { onMapClick?: (e: any) => void }) {
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.flyTo(center, map.getZoom())
+  }, [center, map])
+
+  return null
+}
+
+function LocationMarker({ onMapClick, onMapMove }: { onMapClick?: (e: any) => void, onMapMove?: (center: [number, number]) => void }) {
   const [position, setPosition] = useState<[number, number] | null>(null)
   const map = useMapEvents({
     locationfound(e) {
@@ -50,6 +60,12 @@ function LocationMarker({ onMapClick }: { onMapClick?: (e: any) => void }) {
     click(e) {
       if (onMapClick) {
         onMapClick(e)
+      }
+    },
+    moveend() {
+      const center = map.getCenter()
+      if (onMapMove) {
+        onMapMove([center.lat, center.lng])
       }
     }
   })
@@ -101,24 +117,35 @@ export default function MapView() {
         params: {
           lat: center[0],
           lng: center[1],
-          radius: 5,
+          radius: 10,
         },
       })
       return response.data as AccessPoint[]
     },
   })
 
+  const handleMapMove = (newCenter: [number, number]) => {
+    setCenter(newCenter)
+  }
+
   const searchWigleMutation = useMutation({
     mutationFn: async (params: { latitude: number; longitude: number; ssid?: string }) => {
       const response = await axios.post('/api/wigle/search', params)
       return response.data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       refetch()
-      toast({
-        title: 'Success',
-        description: 'Found and imported access points from WiGLE database',
-      })
+      if (data.networks && data.networks.length > 0) {
+        toast({
+          title: 'Success',
+          description: `Found ${data.networks.length} access points from WiGLE database`,
+        })
+      } else {
+        toast({
+          title: 'No Results',
+          description: 'No access points found in WiGLE database for this search',
+        })
+      }
     },
     onError: () => {
       toast({
@@ -167,9 +194,38 @@ export default function MapView() {
               className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
             />
             {searchSSID && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Showing {filteredAccessPoints?.length || 0} of {accessPoints?.length || 0} access points
-              </p>
+              <>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Showing {filteredAccessPoints?.length || 0} of {accessPoints?.length || 0} access points
+                </p>
+                {filteredAccessPoints && filteredAccessPoints.length > 0 && !accessPoints?.find(ap => ap.ssid.toLowerCase().includes(searchSSID.toLowerCase())) && (
+                  <div className="mt-2">
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mb-1">
+                      These access points might be in a different location
+                    </p>
+                    <button
+                      onClick={async () => {
+                        // Search WiGLE for this SSID and navigate to first result
+                        searchWigleMutation.mutate({
+                          latitude: center[0],
+                          longitude: center[1],
+                          ssid: searchSSID
+                        }, {
+                          onSuccess: (data) => {
+                            if (data.networks && data.networks.length > 0) {
+                              const firstNetwork = data.networks[0]
+                              setCenter([firstNetwork.latitude, firstNetwork.longitude])
+                            }
+                          }
+                        })
+                      }}
+                      className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Search WiGLE & Go to Location
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -230,7 +286,8 @@ export default function MapView() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <LocationMarker onMapClick={handleMapClick} />
+        <MapUpdater center={center} />
+        <LocationMarker onMapClick={handleMapClick} onMapMove={handleMapMove} />
 
         {filteredAccessPoints?.map((ap) => (
           <Marker
