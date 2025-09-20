@@ -12,6 +12,7 @@ import accessPointRoutes from './routes/accessPoints';
 import speedTestRoutes from './routes/speedTest';
 import wigleRoutes from './routes/wigle';
 import organizationRoutes from './routes/organizations';
+import userRoutes from './routes/user';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDatabase } from './db/connection';
 
@@ -59,6 +60,7 @@ app.use('/api/access-points', accessPointRoutes);
 app.use('/api/speed-test', speedTestRoutes);
 app.use('/api/wigle', wigleRoutes);
 app.use('/api/organizations', organizationRoutes);
+app.use('/api/user', userRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
