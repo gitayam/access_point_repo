@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { X, Wifi, Lock, Key, MapPin } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
@@ -28,6 +28,7 @@ export default function AddPasswordModal({
 }: AddPasswordModalProps) {
   const { toast } = useToast()
   const { isAuthenticated } = useAuthStore()
+  const queryClient = useQueryClient()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
@@ -36,13 +37,20 @@ export default function AddPasswordModal({
       const response = await axios.post(`/api/access-points/${accessPoint.id}/password`, {
         password
       })
+      // Auto-favorite the access point after adding password
+      try {
+        await axios.post(`/api/user/favorites/${accessPoint.id}`)
+      } catch (error) {
+        // Silently handle if already favorited
+      }
       return response.data
     },
     onSuccess: () => {
       toast({
         title: 'Success',
-        description: 'Password added successfully'
+        description: 'Password added and access point favorited!'
       })
+      queryClient.invalidateQueries({ queryKey: ['userFavorites'] })
       onSuccess()
     },
     onError: () => {

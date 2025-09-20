@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
 import {
   Wifi, Lock, Star, Copy, QrCode, Activity, AlertCircle,
-  MapPin, Building, Shield, Globe, Ban, Plus, X
+  MapPin, Building, Shield, Globe, Ban, Plus, X, Heart
 } from 'lucide-react'
 
 export default function AccessPointDetail() {
@@ -14,12 +14,14 @@ export default function AccessPointDetail() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthStore()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [showQR, setShowQR] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [customWebsite, setCustomWebsite] = useState('')
   const [serviceBlocks, setServiceBlocks] = useState<{ [key: string]: boolean }>({})
   const [blockedWebsites, setBlockedWebsites] = useState<string[]>([])
+  const [isFavorited, setIsFavorited] = useState(false)
 
   const { data: accessPoint, isLoading, refetch } = useQuery({
     queryKey: ['accessPoint', id],
@@ -36,6 +38,47 @@ export default function AccessPointDetail() {
       return response.data
     },
     enabled: showQR && !!id
+  })
+
+  const { data: favorites } = useQuery({
+    queryKey: ['userFavorites'],
+    queryFn: async () => {
+      if (!isAuthenticated) return []
+      const response = await axios.get('/api/user/favorites')
+      return response.data
+    },
+    enabled: isAuthenticated
+  })
+
+  useEffect(() => {
+    if (favorites && id) {
+      setIsFavorited(favorites.some((fav: any) => fav.id === id))
+    }
+  }, [favorites, id])
+
+  const favoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (isFavorited) {
+        await axios.delete(`/api/user/favorites/${id}`)
+      } else {
+        await axios.post(`/api/user/favorites/${id}`)
+      }
+    },
+    onSuccess: () => {
+      setIsFavorited(!isFavorited)
+      queryClient.invalidateQueries({ queryKey: ['userFavorites'] })
+      toast({
+        title: 'Success',
+        description: isFavorited ? 'Removed from favorites' : 'Added to favorites'
+      })
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update favorites',
+        variant: 'destructive'
+      })
+    }
   })
 
 
@@ -291,6 +334,25 @@ export default function AccessPointDetail() {
                 <Activity className="inline h-4 w-4 mr-1" />
                 {speedTestMutation.isPending ? 'Testing...' : 'Run Speed Test'}
               </button>
+              {isAuthenticated && (
+                <button
+                  onClick={() => favoriteMutation.mutate()}
+                  disabled={favoriteMutation.isPending}
+                  className={`px-4 py-2 rounded-md ${
+                    isFavorited
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                  } disabled:opacity-50`}
+                >
+                  <Heart className={`inline h-4 w-4 mr-1 ${isFavorited ? 'fill-current' : ''}`} />
+                  {favoriteMutation.isPending
+                    ? 'Updating...'
+                    : isFavorited
+                      ? 'Remove from Favorites'
+                      : 'Add to Favorites'
+                  }
+                </button>
+              )}
             </div>
 
             <div className="mt-6">
