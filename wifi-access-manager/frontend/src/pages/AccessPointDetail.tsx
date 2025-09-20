@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import axios from 'axios'
@@ -32,8 +32,14 @@ export default function AccessPointDetail() {
       const response = await axios.get(`/api/access-points/${id}/qr-code`)
       return response.data
     },
-    enabled: showQR
+    enabled: showQR && !!id
   })
+
+  useEffect(() => {
+    if (showQR) {
+      console.log('QR modal should show, qrCode data:', qrCode);
+    }
+  }, [showQR, qrCode])
 
   const ratingMutation = useMutation({
     mutationFn: async (data: { overallRating: number; comment?: string }) => {
@@ -189,7 +195,10 @@ export default function AccessPointDetail() {
                     <Copy className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setShowQR(true)}
+                    onClick={() => {
+                      console.log('QR button clicked, setting showQR to true');
+                      setShowQR(true);
+                    }}
                     className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   >
                     <QrCode className="h-4 w-4" />
@@ -209,8 +218,8 @@ export default function AccessPointDetail() {
                       key={star}
                       className={`h-5 w-5 ${
                         star <= avgRating
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-gray-300 dark:text-gray-600'
                       }`}
                     />
                   ))}
