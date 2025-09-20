@@ -94,16 +94,6 @@ Access the application at http://localhost:8080
 - Frontend may show ECONNREFUSED errors during backend restart
 - Duplicate key constraints may occur when re-adding same access point
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -114,10 +104,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OpenStreetMap](https://www.openstreetmap.org) for mapping services
 - [Leaflet](https://leafletjs.com) for interactive maps
 - Community contributors and testers
-
-## 📞 Support
-
-For issues and feature requests, please use the [GitHub Issues](https://github.com/gitayam/access_point_repo/issues) page.
 
 ---
 
