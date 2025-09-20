@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 're
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
-import { Lock, Unlock, Search, Plus } from 'lucide-react'
+import { Lock, Unlock, Search, Plus, MapPin } from 'lucide-react'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import AddAccessPointModal from '@/components/AddAccessPointModal'
@@ -127,6 +127,9 @@ export default function MapView() {
   const [selectedAccessPoint, setSelectedAccessPoint] = useState<any>(null)
   const [searchSSID, setSearchSSID] = useState('')
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [addressSearch, setAddressSearch] = useState('')
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false)
+  const [showOnlyWithPasswords, setShowOnlyWithPasswords] = useState(false)
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -202,24 +205,95 @@ export default function MapView() {
 
   const handleMapClick = (e: any) => {
     if (isAuthenticated) {
-      setSelectedLocation({ lat: e.latlng.lat, lng: e.latlng.lng })
+      const location = { lat: e.latlng.lat, lng: e.latlng.lng }
+      console.log('Map clicked at:', location)
+      setSelectedLocation(location)
       setShowAddModal(true)
     }
   }
 
-  // Filter access points based on search
-  const filteredAccessPoints = searchSSID
-    ? accessPoints?.filter(ap =>
-        ap.ssid.toLowerCase().includes(searchSSID.toLowerCase())
-      )
-    : accessPoints
+  const searchAddress = async () => {
+    if (!addressSearch.trim()) return
+
+    setIsSearchingAddress(true)
+    try {
+      // Using Nominatim OpenStreetMap geocoding API
+      const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+        params: {
+          q: addressSearch,
+          format: 'json',
+          limit: 1
+        }
+      })
+
+      if (response.data && response.data.length > 0) {
+        const result = response.data[0]
+        const lat = parseFloat(result.lat)
+        const lng = parseFloat(result.lon)
+        setCenter([lat, lng])
+        toast({
+          title: 'Location Found',
+          description: `Navigated to ${result.display_name}`,
+        })
+      } else {
+        toast({
+          title: 'Not Found',
+          description: 'Could not find that address',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to search address',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSearchingAddress(false)
+    }
+  }
+
+  // Filter access points based on search and password filter
+  const filteredAccessPoints = accessPoints?.filter(ap => {
+    // Filter by SSID if search term exists
+    if (searchSSID && !ap.ssid.toLowerCase().includes(searchSSID.toLowerCase())) {
+      return false
+    }
+    // Filter by password if checkbox is checked
+    if (showOnlyWithPasswords && !ap.has_password) {
+      return false
+    }
+    return true
+  })
 
   return (
     <div className="h-[calc(100vh-4rem)] relative">
       <div className="absolute top-4 left-4 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-w-sm">
-        <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Search & Filter</h2>
+        <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Search & Navigation</h2>
 
         <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Search Address</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Enter address or location"
+                value={addressSearch}
+                onChange={(e) => setAddressSearch(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchAddress()}
+                className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+              <button
+                onClick={searchAddress}
+                disabled={isSearchingAddress}
+                className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                title="Search address"
+              >
+                <MapPin className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Filter Visible Access Points</label>
             <input
@@ -229,7 +303,16 @@ export default function MapView() {
               onChange={(e) => setSearchSSID(e.target.value)}
               className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
             />
-            {searchSSID && (
+            <label className="flex items-center mt-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnlyWithPasswords}
+                onChange={(e) => setShowOnlyWithPasswords(e.target.checked)}
+                className="mr-2 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Show only with passwords</span>
+            </label>
+            {(searchSSID || showOnlyWithPasswords) && (
               <>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Showing {filteredAccessPoints?.length || 0} of {accessPoints?.length || 0} access points
@@ -308,6 +391,10 @@ export default function MapView() {
           <div className="flex items-center text-sm">
             <div className="w-4 h-4 bg-green-600 rounded-full mr-2"></div>
             <span className="text-gray-900 dark:text-white">Open WiFi</span>
+          </div>
+          <div className="flex items-center text-sm">
+            <Lock className="h-4 w-4 text-yellow-600 mr-2" />
+            <span className="text-gray-900 dark:text-white">Has Password</span>
           </div>
         </div>
       </div>
@@ -389,6 +476,7 @@ export default function MapView() {
 
       {showAddModal && (
         <AddAccessPointModal
+          defaultLocation={selectedLocation}
           onClose={() => {
             setShowAddModal(false)
             setSelectedLocation(null)
@@ -398,7 +486,6 @@ export default function MapView() {
             setSelectedLocation(null)
             refetch()
           }}
-          defaultLocation={selectedLocation}
         />
       )}
 
