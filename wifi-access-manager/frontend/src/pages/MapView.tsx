@@ -402,11 +402,14 @@ export default function MapView() {
       <MapContainer
         center={center}
         zoom={13}
+        minZoom={3}
+        maxZoom={19}
         className="h-full w-full"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
 
         <MapUpdater center={center} />
