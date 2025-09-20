@@ -135,33 +135,50 @@ router.post('/', authenticateToken, async (req: AuthRequest, res, next) => {
     const data = CreateAccessPointSchema.parse(req.body);
     const db = getDatabase();
 
-    const [accessPoint] = await db('access_points')
-      .insert({
+    // First try to find existing access point
+    let accessPoint = await db('access_points')
+      .where({
         ssid: data.ssid,
-        bssid: data.bssid,
-        security_type: data.securityType,
-        is_open: data.isOpen,
-        requires_login: data.requiresLogin,
+        bssid: data.bssid || null,
         latitude: data.latitude,
-        longitude: data.longitude,
-        location: db.raw('ST_MakePoint(?, ?)', [data.longitude, data.latitude]),
-        address: data.address,
-        venue_name: data.venueName,
-        venue_type: data.venueType,
-        created_by: req.user!.id,
-        organization_id: req.user!.organizationId
+        longitude: data.longitude
       })
-      .onConflict(['ssid', 'bssid', 'latitude', 'longitude'])
-      .merge({
-        security_type: data.securityType,
-        is_open: data.isOpen,
-        requires_login: data.requiresLogin,
-        address: data.address,
-        venue_name: data.venueName,
-        venue_type: data.venueType,
-        updated_at: db.fn.now()
-      })
-      .returning('*');
+      .first();
+
+    if (accessPoint) {
+      // Update existing
+      [accessPoint] = await db('access_points')
+        .where('id', accessPoint.id)
+        .update({
+          security_type: data.securityType,
+          is_open: data.isOpen,
+          requires_login: data.requiresLogin,
+          address: data.address,
+          venue_name: data.venueName,
+          venue_type: data.venueType,
+          updated_at: db.fn.now()
+        })
+        .returning('*');
+    } else {
+      // Create new
+      [accessPoint] = await db('access_points')
+        .insert({
+          ssid: data.ssid,
+          bssid: data.bssid,
+          security_type: data.securityType,
+          is_open: data.isOpen,
+          requires_login: data.requiresLogin,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          location: db.raw('ST_MakePoint(?, ?)', [data.longitude, data.latitude]),
+          address: data.address,
+          venue_name: data.venueName,
+          venue_type: data.venueType,
+          created_by: req.user!.id,
+          organization_id: req.user!.organizationId
+        })
+        .returning('*');
+    }
 
     if (data.password && !data.isOpen) {
       await db('access_point_passwords').insert({
