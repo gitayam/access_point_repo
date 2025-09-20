@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { X, Wifi, Lock, MapPin } from 'lucide-react'
+import { X, Wifi, Lock, MapPin, Search } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
 
 interface AddAccessPointModalProps {
@@ -16,6 +16,8 @@ export default function AddAccessPointModal({
   defaultLocation
 }: AddAccessPointModalProps) {
   const { toast } = useToast()
+  const [searchSSID, setSearchSSID] = useState('')
+  const [showWigleResults, setShowWigleResults] = useState(false)
   const [formData, setFormData] = useState({
     ssid: '',
     bssid: '',
@@ -40,8 +42,26 @@ export default function AddAccessPointModal({
     }
   }, [defaultLocation])
 
+  // Search for nearby access points from WiGLE
+  const { data: wigleResults, refetch: searchWigle, isLoading: isSearching } = useQuery({
+    queryKey: ['wigleSearch', formData.latitude, formData.longitude, searchSSID],
+    queryFn: async () => {
+      const response = await axios.post('/api/wigle/search', {
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        ssid: searchSSID || undefined
+      })
+      return response.data.networks || []
+    },
+    enabled: false
+  })
+
   const addMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Ensure SSID is not empty
+      if (!data.ssid || data.ssid.trim() === '') {
+        throw new Error('SSID is required')
+      }
       const response = await axios.post('/api/access-points', data)
       return response.data
     },
@@ -63,7 +83,33 @@ export default function AddAccessPointModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.ssid || formData.ssid.trim() === '') {
+      toast({
+        title: 'Error',
+        description: 'SSID is required',
+        variant: 'destructive'
+      })
+      return
+    }
     addMutation.mutate(formData)
+  }
+
+  const handleSearchNearby = () => {
+    searchWigle()
+    setShowWigleResults(true)
+  }
+
+  const selectWigleNetwork = (network: any) => {
+    setFormData(prev => ({
+      ...prev,
+      ssid: network.ssid || '',
+      bssid: network.netid || '',
+      latitude: network.trilat,
+      longitude: network.trilong,
+      securityType: network.encryption || 'unknown',
+      isOpen: network.encryption === 'Open'
+    }))
+    setShowWigleResults(false)
   }
 
   const handleGetLocation = () => {
@@ -107,6 +153,47 @@ export default function AddAccessPointModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Search Nearby Networks (WiGLE)
+              </label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={searchSSID}
+                  onChange={(e) => setSearchSSID(e.target.value)}
+                  placeholder="Filter by SSID (optional)"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchNearby}
+                  disabled={isSearching}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+
+              {showWigleResults && wigleResults && wigleResults.length > 0 && (
+                <div className="mb-3 max-h-40 overflow-y-auto border dark:border-gray-600 rounded-md">
+                  {wigleResults.map((network: any, index: number) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectWigleNetwork(network)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-600 last:border-0"
+                    >
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{network.ssid || 'Unknown'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {network.netid} • {network.encryption || 'Unknown'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 SSID (Network Name) *
               </label>
               <input
@@ -114,6 +201,7 @@ export default function AddAccessPointModal({
                 required
                 value={formData.ssid}
                 onChange={(e) => setFormData(prev => ({ ...prev, ssid: e.target.value }))}
+                placeholder="Enter network name"
                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
