@@ -11,17 +11,39 @@ import AddPasswordModal from '@/components/AddPasswordModal'
 import { useToast } from '@/hooks/useToast'
 
 const wifiIcon = L.divIcon({
-  html: `<div class="text-blue-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg></div>`,
-  className: 'custom-div-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 24],
+  html: `
+    <div class="relative">
+      <div class="absolute inset-0 bg-blue-600 rounded-full animate-pulse opacity-25" style="width: 48px; height: 48px; margin: -12px 0 0 -12px;"></div>
+      <div class="absolute inset-0 bg-white rounded-full shadow-lg border-2 border-blue-600" style="width: 40px; height: 40px; margin: -8px 0 0 -8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600" style="margin: 8px;">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+    </div>
+  `,
+  className: 'custom-wifi-icon',
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
 })
 
 const openWifiIcon = L.divIcon({
-  html: `<div class="text-green-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg></div>`,
-  className: 'custom-div-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 24],
+  html: `
+    <div class="relative">
+      <div class="absolute inset-0 bg-green-600 rounded-full animate-pulse opacity-25" style="width: 48px; height: 48px; margin: -12px 0 0 -12px;"></div>
+      <div class="absolute inset-0 bg-white rounded-full shadow-lg border-2 border-green-600" style="width: 40px; height: 40px; margin: -8px 0 0 -8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600" style="margin: 8px;">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+    </div>
+  `,
+  className: 'custom-wifi-icon',
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
 })
 
 interface AccessPoint {
@@ -52,6 +74,20 @@ function MapUpdater({ center }: { center: [number, number] }) {
 
 function LocationMarker({ onMapClick, onMapMove }: { onMapClick?: (e: any) => void, onMapMove?: (center: [number, number]) => void }) {
   const [position, setPosition] = useState<[number, number] | null>(null)
+
+  const userLocationIcon = L.divIcon({
+    html: `
+      <div class="relative">
+        <div class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75" style="width: 24px; height: 24px; margin: -6px 0 0 -6px;"></div>
+        <div class="absolute inset-0 bg-blue-500 rounded-full shadow-lg" style="width: 16px; height: 16px; margin: -2px 0 0 -2px;"></div>
+        <div class="absolute inset-0 bg-white rounded-full" style="width: 8px; height: 8px; margin: 2px 0 0 2px;"></div>
+      </div>
+    `,
+    className: 'user-location-icon',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  })
+
   const map = useMapEvents({
     locationfound(e) {
       setPosition([e.latlng.lat, e.latlng.lng])
@@ -75,7 +111,7 @@ function LocationMarker({ onMapClick, onMapMove }: { onMapClick?: (e: any) => vo
   }, [map])
 
   return position === null ? null : (
-    <Marker position={position}>
+    <Marker position={position} icon={userLocationIcon}>
       <Popup>You are here</Popup>
     </Marker>
   )
@@ -294,8 +330,9 @@ export default function MapView() {
             key={ap.id}
             position={[ap.latitude, ap.longitude]}
             icon={ap.is_open ? openWifiIcon : wifiIcon}
+            zIndexOffset={1000}
           >
-            <Popup>
+            <Popup className="wifi-popup">
               <div className="p-2">
                 <h3 className="font-semibold flex items-center">
                   {ap.ssid}
