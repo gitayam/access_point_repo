@@ -104,9 +104,9 @@ export default function AccessPointDetail() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold flex items-center">
+          <h1 className="text-2xl font-bold flex items-center text-gray-900 dark:text-white">
             <Wifi className="h-6 w-6 mr-2 text-primary-600" />
             {accessPoint.ssid}
           </h1>
@@ -133,22 +133,22 @@ export default function AccessPointDetail() {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Network Details</h3>
+              <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Network Details</h3>
               <div className="space-y-2 text-sm">
                 {accessPoint.bssid && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">BSSID:</span>
-                    <span className="font-mono">{accessPoint.bssid}</span>
+                    <span className="text-gray-600 dark:text-gray-400">BSSID:</span>
+                    <span className="font-mono text-gray-900 dark:text-white">{accessPoint.bssid}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Security:</span>
-                  <span>{accessPoint.security_type || 'Unknown'}</span>
+                  <span className="text-gray-600 dark:text-gray-400">Security:</span>
+                  <span className="text-gray-900 dark:text-white">{accessPoint.security_type || 'Unknown'}</span>
                 </div>
                 {accessPoint.requires_login && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Login Required:</span>
-                    <span>Yes</span>
+                    <span className="text-gray-600 dark:text-gray-400">Login Required:</span>
+                    <span className="text-gray-900 dark:text-white">Yes</span>
                   </div>
                 )}
               </div>
@@ -156,16 +156,16 @@ export default function AccessPointDetail() {
 
             {accessPoint.venue_name && (
               <div>
-                <h3 className="font-semibold mb-2">Location</h3>
+                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Location</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
-                    <Building className="h-4 w-4 mr-2 text-gray-600" />
-                    <span>{accessPoint.venue_name}</span>
+                    <Building className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                    <span className="text-gray-900 dark:text-white">{accessPoint.venue_name}</span>
                   </div>
                   {accessPoint.address && (
                     <div className="flex items-start">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-600 mt-0.5" />
-                      <span>{accessPoint.address}</span>
+                      <MapPin className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400 mt-0.5" />
+                      <span className="text-gray-900 dark:text-white">{accessPoint.address}</span>
                     </div>
                   )}
                 </div>
@@ -174,13 +174,13 @@ export default function AccessPointDetail() {
 
             {isAuthenticated && accessPoint.password && (
               <div>
-                <h3 className="font-semibold mb-2">Password</h3>
+                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Password</h3>
                 <div className="flex items-center space-x-2">
                   <input
                     type="password"
                     value={accessPoint.password}
                     readOnly
-                    className="flex-1 px-3 py-2 bg-gray-100 rounded-md font-mono text-sm"
+                    className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md font-mono text-sm"
                   />
                   <button
                     onClick={copyPassword}
@@ -201,7 +201,7 @@ export default function AccessPointDetail() {
 
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Rating</h3>
+              <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Rating</h3>
               <div className="flex items-center space-x-2">
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -215,7 +215,7 @@ export default function AccessPointDetail() {
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {avgRating.toFixed(1)} ({accessPoint.ratings?.length || 0} reviews)
                 </span>
               </div>
@@ -223,19 +223,19 @@ export default function AccessPointDetail() {
 
             {accessPoint.speedTests && accessPoint.speedTests.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2">Latest Speed Test</h3>
-                <div className="bg-gray-50 rounded-md p-3 space-y-2 text-sm">
+                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Latest Speed Test</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Download:</span>
-                    <span>{accessPoint.speedTests[0].download_speed.toFixed(1)} Mbps</span>
+                    <span className="text-gray-600 dark:text-gray-400">Download:</span>
+                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].download_speed.toFixed(1)} Mbps</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Upload:</span>
-                    <span>{accessPoint.speedTests[0].upload_speed.toFixed(1)} Mbps</span>
+                    <span className="text-gray-600 dark:text-gray-400">Upload:</span>
+                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].upload_speed.toFixed(1)} Mbps</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Ping:</span>
-                    <span>{accessPoint.speedTests[0].ping.toFixed(0)} ms</span>
+                    <span className="text-gray-600 dark:text-gray-400">Ping:</span>
+                    <span className="text-gray-900 dark:text-white">{accessPoint.speedTests[0].ping.toFixed(0)} ms</span>
                   </div>
                 </div>
               </div>
@@ -243,7 +243,7 @@ export default function AccessPointDetail() {
 
             {accessPoint.serviceBlocks && accessPoint.serviceBlocks.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2">Service Restrictions</h3>
+                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Service Restrictions</h3>
                 <div className="space-y-1">
                   {accessPoint.serviceBlocks.map((block: any) => (
                     <div
@@ -265,8 +265,8 @@ export default function AccessPointDetail() {
         </div>
 
         {isAuthenticated && (
-          <div className="mt-6 pt-6 border-t">
-            <h3 className="font-semibold mb-4">Actions</h3>
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold mb-4 text-gray-900 dark:text-white">Actions</h3>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => speedTestMutation.mutate()}
@@ -279,7 +279,7 @@ export default function AccessPointDetail() {
             </div>
 
             <div className="mt-6">
-              <h3 className="font-semibold mb-2">Rate this Access Point</h3>
+              <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Rate this Access Point</h3>
               <div className="flex items-center space-x-2 mb-3">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -301,7 +301,7 @@ export default function AccessPointDetail() {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Add a comment (optional)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
                 rows={3}
               />
               <button
@@ -318,10 +318,10 @@ export default function AccessPointDetail() {
 
       {showQR && qrCode && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4">WiFi QR Code</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">WiFi QR Code</h3>
             <img src={qrCode.qrCode} alt="WiFi QR Code" className="w-full" />
-            <p className="text-sm text-gray-600 mt-4 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4 text-center">
               Scan this code to connect to {accessPoint.ssid}
             </p>
             <button
