@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
 import {
   Wifi, Lock, Star, Copy, QrCode, Activity, AlertCircle,
-  MapPin, Building, Shield
+  MapPin, Building, Shield, Globe, Ban, Plus, X
 } from 'lucide-react'
 
 export default function AccessPointDetail() {
@@ -17,6 +17,9 @@ export default function AccessPointDetail() {
   const [showQR, setShowQR] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
+  const [customWebsite, setCustomWebsite] = useState('')
+  const [serviceBlocks, setServiceBlocks] = useState<{ [key: string]: boolean }>({})
+  const [blockedWebsites, setBlockedWebsites] = useState<string[]>([])
 
   const { data: accessPoint, isLoading, refetch } = useQuery({
     queryKey: ['accessPoint', id],
@@ -60,6 +63,17 @@ export default function AccessPointDetail() {
     }
   })
 
+  const serviceBlockMutation = useMutation({
+    mutationFn: async (data: { serviceName: string; isBlocked: boolean }) => {
+      const response = await axios.post(`/api/access-points/${id}/service-block`, data)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Service restriction updated' })
+      refetch()
+    }
+  })
+
   const copyPassword = () => {
     if (accessPoint?.password) {
       navigator.clipboard.writeText(accessPoint.password)
@@ -74,6 +88,26 @@ export default function AccessPointDetail() {
         comment: comment || undefined
       })
     }
+  }
+
+  const handleServiceToggle = (serviceName: string, isBlocked: boolean) => {
+    serviceBlockMutation.mutate({ serviceName, isBlocked })
+    setServiceBlocks(prev => ({ ...prev, [serviceName]: isBlocked }))
+  }
+
+  const handleAddWebsiteBlock = () => {
+    if (customWebsite && !blockedWebsites.includes(customWebsite)) {
+      const websiteName = `Website: ${customWebsite}`
+      handleServiceToggle(websiteName, true)
+      setBlockedWebsites(prev => [...prev, customWebsite])
+      setCustomWebsite('')
+    }
+  }
+
+  const handleRemoveWebsiteBlock = (website: string) => {
+    const websiteName = `Website: ${website}`
+    handleServiceToggle(websiteName, false)
+    setBlockedWebsites(prev => prev.filter(w => w !== website))
   }
 
   if (isLoading) {
@@ -242,26 +276,6 @@ export default function AccessPointDetail() {
               </div>
             )}
 
-            {accessPoint.serviceBlocks && accessPoint.serviceBlocks.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Service Restrictions</h3>
-                <div className="space-y-1">
-                  {accessPoint.serviceBlocks.map((block: any) => (
-                    <div
-                      key={block.id}
-                      className={`text-sm px-2 py-1 rounded ${
-                        block.is_blocked
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      <AlertCircle className="inline h-3 w-3 mr-1" />
-                      {block.service_name} {block.is_blocked ? 'Blocked' : 'Available'}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -277,6 +291,125 @@ export default function AccessPointDetail() {
                 <Activity className="inline h-4 w-4 mr-1" />
                 {speedTestMutation.isPending ? 'Testing...' : 'Run Speed Test'}
               </button>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="font-semibold mb-4 text-gray-900 dark:text-white">Service Restrictions</h3>
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center">
+                      <Ban className="h-4 w-4 mr-2 text-red-500" />
+                      <span className="text-gray-900 dark:text-white">VPN Blocked</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={serviceBlocks['VPN'] || (accessPoint.serviceBlocks?.find((b: any) => b.service_name === 'VPN')?.is_blocked)}
+                        onChange={(e) => handleServiceToggle('VPN', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2 text-orange-500" />
+                      <span className="text-gray-900 dark:text-white">Streaming Services Blocked</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={serviceBlocks['Streaming'] || (accessPoint.serviceBlocks?.find((b: any) => b.service_name === 'Streaming')?.is_blocked)}
+                        onChange={(e) => handleServiceToggle('Streaming', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center">
+                      <Globe className="h-4 w-4 mr-2 text-yellow-500" />
+                      <span className="text-gray-900 dark:text-white">Torrenting Blocked</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={serviceBlocks['Torrenting'] || (accessPoint.serviceBlocks?.find((b: any) => b.service_name === 'Torrenting')?.is_blocked)}
+                        onChange={(e) => handleServiceToggle('Torrenting', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center">
+                      <Shield className="h-4 w-4 mr-2 text-blue-500" />
+                      <span className="text-gray-900 dark:text-white">Adult Content Blocked</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={serviceBlocks['Adult Content'] || (accessPoint.serviceBlocks?.find((b: any) => b.service_name === 'Adult Content')?.is_blocked)}
+                        onChange={(e) => handleServiceToggle('Adult Content', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2 text-gray-900 dark:text-white">Blocked Websites</h4>
+                  <div className="space-y-2">
+                    {(blockedWebsites.length > 0 || accessPoint.serviceBlocks?.filter((b: any) => b.service_name.startsWith('Website:')).length > 0) && (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {blockedWebsites.map((website) => (
+                          <div key={website} className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-md text-sm">
+                            <span>{website}</span>
+                            <button
+                              onClick={() => handleRemoveWebsiteBlock(website)}
+                              className="ml-1 hover:text-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {accessPoint.serviceBlocks?.filter((b: any) => b.service_name.startsWith('Website:') && b.is_blocked).map((block: any) => (
+                          <div key={block.id} className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-md text-sm">
+                            <span>{block.service_name.replace('Website: ', '')}</span>
+                            <button
+                              onClick={() => handleServiceToggle(block.service_name, false)}
+                              className="ml-1 hover:text-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customWebsite}
+                        onChange={(e) => setCustomWebsite(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddWebsiteBlock()}
+                        placeholder="Add website to block (e.g., facebook.com)"
+                        className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                      />
+                      <button
+                        onClick={handleAddWebsiteBlock}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6">
