@@ -23,10 +23,13 @@ Building a web application for managing WiFi access points with password sharing
 - [x] Access point CRUD operations
 - [x] Password storage and sharing (encrypted)
 - [x] QR code generation for WiFi credentials
-- [x] Speed test functionality integration
+- [x] Speed test functionality (mock implementation for Apple Silicon)
 - [x] Rating and review system (1-5 stars)
-- [x] Service blocking reports (VPN, streaming, etc.)
+- [x] Service blocking reports with toggles (VPN, streaming, torrenting, adult content)
+- [x] Custom website blocking with add/remove functionality
 - [x] User favorites system
+- [x] Address search with Nominatim integration
+- [x] Password filter for map view
 
 ### Frontend Development
 - [x] React/TypeScript application structure
@@ -85,11 +88,17 @@ npm run dev
 docker-compose up --build
 ```
 
+## 🐛 Known Issues
+
+- [ ] Duplicate key constraint errors when re-adding same access point
+- [ ] Speed test using mock data (needs Docker container implementation)
+- [ ] Frontend ECONNREFUSED errors during backend restart
+
 ## 📈 Future Enhancements (Post-Launch)
 
 ### UI/UX Improvements
 - [ ] Full mobile-responsive design optimization
-- [ ] Dark mode support
+- [x] Dark mode support (Implemented throughout app)
 - [ ] Enhanced accessibility (WCAG 2.1 AA)
 - [ ] Progressive Web App (PWA) features
 - [ ] Offline mode with service workers
