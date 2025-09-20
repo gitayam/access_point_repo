@@ -151,6 +151,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res, next) => {
         created_by: req.user!.id,
         organization_id: req.user!.organizationId
       })
+      .onConflict(['ssid', 'bssid', 'latitude', 'longitude'])
+      .merge({
+        security_type: data.securityType,
+        is_open: data.isOpen,
+        requires_login: data.requiresLogin,
+        address: data.address,
+        venue_name: data.venueName,
+        venue_type: data.venueType,
+        updated_at: db.fn.now()
+      })
       .returning('*');
 
     if (data.password && !data.isOpen) {
